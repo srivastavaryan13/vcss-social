@@ -11,7 +11,7 @@
   --sel-ring:  #4a6cf7;
   --danger:    #c0392b;
 }
-
+[hidden] { display: none !important; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
