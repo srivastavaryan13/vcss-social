@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>VCSS</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1d21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VCSS">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ── LAYER 0: Login ── -->
+<section id="layer-login" class="screen screen--login">
+  <div class="login-wrap">
+    <div class="home-mark">VC</div>
+    <h1 class="home-title">VCSS</h1>
+    <p class="home-sub">Social CRM</p>
+    <form id="login-form" class="login-form" novalidate>
+      <input id="login-email"    class="login-input" type="email"    placeholder="Email"    autocomplete="email"    required>
+      <input id="login-password" class="login-input" type="password" placeholder="Password" autocomplete="current-password" required>
+      <button id="login-btn" class="login-btn" type="submit">Sign in</button>
+      <p id="login-error" class="login-error" hidden></p>
+    </form>
+  </div>
+</section>
+
+<!-- ── LAYER 1: Category home ── -->
+<section id="layer-home" class="screen screen--home" hidden>
+  <div class="home-wrap">
+    <div class="home-mark">VC</div>
+    <h1 class="home-title">VCSS</h1>
+    <p class="home-sub">Social CRM</p>
+    <div id="category-list" class="category-list"><!-- tiles injected --></div>
+  </div>
+  <button id="sign-out-btn" class="sign-out-btn" type="button">Sign out</button>
+</section>
+
+<!-- ── LAYER 2: Contact list ── -->
+<section id="layer-list" class="screen screen--list" hidden>
+  <header class="list-header">
+    <button class="back-btn" id="back-to-home" type="button" aria-label="Back">&#8249;</button>
+    <div class="list-header__text">
+      <div class="list-header__title" id="list-title">–</div>
+      <div class="list-header__sub"  id="list-sub">–</div>
+    </div>
+    <button id="select-btn" class="select-btn" type="button">Select</button>
+  </header>
+
+  <div id="select-bar" class="select-bar" hidden>
+    <span id="select-count">0 selected</span>
+    <button id="draft-btn" class="draft-btn" type="button">Draft Invite ›</button>
+  </div>
+
+  <div class="card-list" id="card-list"><!-- cards injected --></div>
+</section>
+
+<!-- ── LAYER 3 (Aryan/Harsh only): Invite draft ── -->
+<section id="layer-invite" class="screen screen--invite" hidden>
+  <header class="list-header">
+    <button class="back-btn" id="back-to-list" type="button" aria-label="Back">&#8249;</button>
+    <div class="list-header__text">
+      <div class="list-header__title">Invite Draft</div>
+      <div class="list-header__sub" id="invite-sub">–</div>
+    </div>
+  </header>
+  <div class="invite-body" id="invite-body"><!-- injected --></div>
+</section>
+
+<!-- Supabase JS v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
