@@ -12,6 +12,7 @@
   var currentContacts   = [];    // contacts for open category
   var selectedIds       = new Set();
   var checkboxMode      = false;
+  var searchQuery       = "";
 
   // ── Helpers ──────────────────────────────────────────────
   var PLACEHOLDER_SVG =
@@ -41,6 +42,8 @@
   function goList(cat) {
     currentCategory = cat;
     selectedIds.clear();
+    searchQuery = "";
+    el("list-search").value = "";
     hide("layer-login"); hide("layer-home"); show("layer-list"); hide("layer-invite");
     el("list-title").textContent = cat.name;
     el("list-sub").textContent   = "Loading…";
@@ -148,9 +151,32 @@
           .filter(Boolean);
         currentContacts = sortContacts(contacts);
         el("list-sub").textContent = currentContacts.length + " contacts";
-        renderContactList(currentContacts);
+        renderVisibleContacts();
       });
   }
+
+  function visibleContacts() {
+    if (!searchQuery) return currentContacts;
+    var q = searchQuery.toLowerCase();
+    return currentContacts.filter(function (c) {
+      return (c.full_name || "").toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function renderVisibleContacts() {
+    var list = visibleContacts();
+    if (searchQuery) {
+      el("list-sub").textContent = list.length + " of " + currentContacts.length + " contacts";
+    } else {
+      el("list-sub").textContent = currentContacts.length + " contacts";
+    }
+    renderContactList(list);
+  }
+
+  el("list-search").addEventListener("input", function () {
+    searchQuery = el("list-search").value.trim();
+    renderVisibleContacts();
+  });
 
   function sortContacts(arr) {
     return arr.slice().sort(function (a, b) {
@@ -182,13 +208,16 @@
 
     if (!html) html = '<div class="spinner-wrap" style="color:#aaa">No contacts found.</div>';
     setHTML("card-list", html);
-
-    if (checkboxMode) attachCardListeners();
   }
 
   function avatarHtml(c) {
     if (c.photo_filename) {
-      return '<img class="avatar" src="photos/' + encodeURIComponent(c.photo_filename) + '" alt="" loading="lazy">';
+      // Render the img plus a hidden fallback placeholder; if the photo
+      // fails to load (e.g. photos/ not deployed), swap to the placeholder
+      // instead of showing a broken-image icon.
+      return '<img class="avatar" src="photos/' + encodeURIComponent(c.photo_filename) + '" alt="" loading="lazy" ' +
+        'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">' +
+        '<div class="avatar-placeholder" style="display:none">' + PLACEHOLDER_SVG + '</div>';
     }
     return '<div class="avatar-placeholder">' + PLACEHOLDER_SVG + '</div>';
   }
@@ -253,8 +282,7 @@
     el("select-btn").classList.toggle("active", checkboxMode);
     selectedIds.clear();
     updateSelectBar();
-    renderContactList(currentContacts);
-    if (checkboxMode) attachCardListeners();
+    renderVisibleContacts();
   });
 
   function resetCheckbox() {
@@ -265,21 +293,22 @@
     hide("select-bar");
   }
 
-  function attachCardListeners() {
-    document.querySelectorAll(".card.selectable").forEach(function (card) {
-      card.addEventListener("click", function () {
-        var id = card.dataset.id;
-        if (selectedIds.has(id)) selectedIds.delete(id);
-        else selectedIds.add(id);
-        updateSelectBar();
-        // re-render just this card
-        var contact = currentContacts.find(function (c) { return c.id === id; });
-        if (contact) card.outerHTML = cardHtml(contact);
-        // re-attach after outerHTML swap
-        attachCardListeners();
-      });
-    });
-  }
+  // Single delegated listener on the list container, attached once.
+  // Toggles selection state directly on the clicked card without
+  // re-rendering the whole list or re-binding listeners (which previously
+  // caused listeners to pile up and made deselecting unreliable).
+  el("card-list").addEventListener("click", function (e) {
+    if (!checkboxMode) return;
+    var card = e.target.closest(".card.selectable");
+    if (!card) return;
+    var id = card.dataset.id;
+    var nowSelected = !selectedIds.has(id);
+    if (nowSelected) selectedIds.add(id); else selectedIds.delete(id);
+    card.classList.toggle("selected", nowSelected);
+    var checkEl = card.querySelector(".card-check");
+    if (checkEl) checkEl.textContent = nowSelected ? "✓" : "";
+    updateSelectBar();
+  });
 
   function updateSelectBar() {
     var n = selectedIds.size;
@@ -298,6 +327,11 @@
     var selected = currentContacts.filter(function (c) { return selectedIds.has(c.id); });
     el("invite-sub").textContent = selected.length + " contacts · " + (currentCategory ? currentCategory.name : "");
 
+    if (!selected.length) {
+      setHTML("invite-body", '<div class="spinner-wrap" style="color:#aaa">No one selected. Go back and select contacts first.</div>');
+      return;
+    }
+
     var lines = selected.map(function (c) {
       var addressing = c.how_message_goes || c.full_name || "";
       var org = c.organisation ? " (" + c.organisation + ")" : "";
@@ -306,13 +340,30 @@
 
     var message = lines.join("\n");
 
+    var peopleRows = selected.map(function (c) {
+      return '<div class="invite-person" data-id="' + esc(c.id) + '">' +
+        '<span>' + esc(c.full_name) + '</span>' +
+        '<button class="invite-remove" type="button" aria-label="Remove">&times;</button>' +
+        '</div>';
+    }).join("");
+
     var html =
+      '<div class="invite-people" id="invite-people">' + peopleRows + '</div>' +
       '<div class="invite-message-box" id="invite-text">' + esc(message) + '</div>' +
       '<button class="copy-btn" id="copy-btn" type="button">Copy list</button>' +
       '<p class="invite-note">Copy and paste into WhatsApp as the invite list for ' +
       esc(currentCategory ? currentCategory.name : "") + '.</p>';
 
     setHTML("invite-body", html);
+
+    el("invite-people").addEventListener("click", function (e) {
+      var btn = e.target.closest(".invite-remove");
+      if (!btn) return;
+      var row = btn.closest(".invite-person");
+      var id = row.dataset.id;
+      selectedIds.delete(id);
+      renderInvite();
+    });
 
     el("copy-btn").addEventListener("click", function () {
       navigator.clipboard.writeText(message).then(function () {
@@ -340,6 +391,8 @@
   el("back-to-home").addEventListener("click", goHome);
   el("back-to-list").addEventListener("click", function () {
     hide("layer-invite"); show("layer-list");
+    updateSelectBar();
+    renderVisibleContacts();
   });
 
 })();
