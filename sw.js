@@ -1,6 +1,7 @@
 // VCSS Social CRM  –  Service Worker
-// Caches the app shell for offline resilience. Bump CACHE_NAME on every deploy.
-const CACHE_NAME = "vcss-v2-2";
+// Caches the app shell for offline resilience. Bump CACHE_NAME on every deploy
+// that changes index.html, css/style.css, or js/app.js.
+const CACHE_NAME = "vcss-v2-3";
 
 const SHELL = [
   "./",
