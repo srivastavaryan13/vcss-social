@@ -340,6 +340,14 @@
 
     var message = lines.join("\n");
 
+    var eventName = currentCategory ? currentCategory.name : "[Event]";
+    var draftMessage =
+      "Hi [Name],\n\n" +
+      "Hope you're doing well. VC would love for you (and [Spouse/Partner]) to join for " + eventName +
+      ", on [Date] at [Time], at [Venue].\n\n" +
+      "Do let us know if this works for you.\n\n" +
+      "Warm regards,\n[Your name]";
+
     var peopleRows = selected.map(function (c) {
       return '<div class="invite-person" data-id="' + esc(c.id) + '">' +
         '<span>' + esc(c.full_name) + '</span>' +
@@ -349,10 +357,17 @@
 
     var html =
       '<div class="invite-people" id="invite-people">' + peopleRows + '</div>' +
+
+      '<div class="invite-section-label">Guest list</div>' +
       '<div class="invite-message-box" id="invite-text">' + esc(message) + '</div>' +
-      '<button class="copy-btn" id="copy-btn" type="button">Copy list</button>' +
+      '<button class="copy-btn" id="copy-list-btn" type="button">Copy list</button>' +
       '<p class="invite-note">Copy and paste into WhatsApp as the invite list for ' +
-      esc(currentCategory ? currentCategory.name : "") + '.</p>';
+      esc(currentCategory ? currentCategory.name : "") + '.</p>' +
+
+      '<div class="invite-section-label">Draft message</div>' +
+      '<div class="invite-message-box" id="invite-draft-text" contenteditable="true">' + esc(draftMessage) + '</div>' +
+      '<button class="copy-btn" id="copy-draft-btn" type="button">Copy message</button>' +
+      '<p class="invite-note">Editable template — fill in the bracketed [placeholders] before sending, or edit directly here.</p>';
 
     setHTML("invite-body", html);
 
@@ -365,26 +380,33 @@
       renderInvite();
     });
 
-    el("copy-btn").addEventListener("click", function () {
-      navigator.clipboard.writeText(message).then(function () {
-        var btn = el("copy-btn");
-        btn.textContent = "Copied ✓";
-        btn.classList.add("copied");
-        setTimeout(function () {
-          btn.textContent = "Copy list";
-          btn.classList.remove("copied");
-        }, 2000);
-      }).catch(function () {
-        // fallback
-        var ta = document.createElement("textarea");
-        ta.value = message;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        el("copy-btn").textContent = "Copied ✓";
+    function wireCopyButton(btnId, getText) {
+      el(btnId).addEventListener("click", function () {
+        var text = getText();
+        navigator.clipboard.writeText(text).then(function () {
+          var btn = el(btnId);
+          var original = btn.dataset.label || btn.textContent;
+          btn.dataset.label = original;
+          btn.textContent = "Copied ✓";
+          btn.classList.add("copied");
+          setTimeout(function () {
+            btn.textContent = original;
+            btn.classList.remove("copied");
+          }, 2000);
+        }).catch(function () {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          el(btnId).textContent = "Copied ✓";
+        });
       });
-    });
+    }
+
+    wireCopyButton("copy-list-btn", function () { return message; });
+    wireCopyButton("copy-draft-btn", function () { return el("invite-draft-text").innerText; });
   }
 
   // ── Back buttons ─────────────────────────────────────────
