@@ -47,22 +47,24 @@
 
 <!-- ── LAYER 2: Contact list ── -->
 <section id="layer-list" class="screen screen--list" hidden>
-  <header class="list-header">
-    <button class="back-btn" id="back-to-home" type="button" aria-label="Back">&#8249;</button>
-    <div class="list-header__text">
-      <div class="list-header__title" id="list-title">–</div>
-      <div class="list-header__sub"  id="list-sub">–</div>
+  <div class="list-topbar">
+    <header class="list-header">
+      <button class="back-btn" id="back-to-home" type="button" aria-label="Back">&#8249;</button>
+      <div class="list-header__text">
+        <div class="list-header__title" id="list-title">–</div>
+        <div class="list-header__sub"  id="list-sub">–</div>
+      </div>
+      <button id="select-btn" class="select-btn" type="button">Select</button>
+    </header>
+
+    <div class="search-bar">
+      <input id="list-search" class="search-input" type="search" placeholder="Search by name…" autocomplete="off">
     </div>
-    <button id="select-btn" class="select-btn" type="button">Select</button>
-  </header>
 
-  <div class="search-bar">
-    <input id="list-search" class="search-input" type="search" placeholder="Search by name…" autocomplete="off">
-  </div>
-
-  <div id="select-bar" class="select-bar" hidden>
-    <span id="select-count">0 selected</span>
-    <button id="draft-btn" class="draft-btn" type="button">Draft Invite ›</button>
+    <div id="select-bar" class="select-bar" hidden>
+      <span id="select-count">0 selected</span>
+      <button id="draft-btn" class="draft-btn" type="button">Draft Invite ›</button>
+    </div>
   </div>
 
   <div class="card-list" id="card-list"><!-- cards injected --></div>
