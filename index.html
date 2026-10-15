@@ -41,6 +41,13 @@
     <h1 class="home-title">VCSS</h1>
     <p class="home-sub">Social CRM</p>
     <div id="category-list" class="category-list"><!-- tiles injected --></div>
+    <div class="category-list extra-list">
+      <button id="nudges-tile" class="category-tile category-tile--nudge" type="button">
+        <span class="category-tile__name">Nudges</span>
+        <span class="category-tile__count">Who to invite next</span>
+        <span class="category-tile__chevron" aria-hidden="true">&#8250;</span>
+      </button>
+    </div>
   </div>
   <button id="sign-out-btn" class="sign-out-btn" type="button">Sign out</button>
 </section>
@@ -59,15 +66,25 @@
 
     <div class="search-bar">
       <input id="list-search" class="search-input" type="search" placeholder="Search by name…" autocomplete="off">
+      <select id="sort-select" class="sort-select" aria-label="Sort order">
+        <option value="default">Default order</option>
+        <option value="az">Surname A–Z</option>
+        <option value="za">Surname Z–A</option>
+        <option value="recent">Recently met</option>
+      </select>
     </div>
 
     <div id="select-bar" class="select-bar" hidden>
       <span id="select-count">0 selected</span>
-      <button id="draft-btn" class="draft-btn" type="button">Draft Invite ›</button>
+      <div class="select-actions">
+        <button id="select-all-btn" class="link-btn" type="button">Select all</button>
+        <button id="draft-btn" class="draft-btn" type="button" disabled>Draft Invite ›</button>
+      </div>
     </div>
   </div>
 
   <div class="card-list" id="card-list"><!-- cards injected --></div>
+  <div id="suggest-bar" class="suggest-bar" hidden><!-- connected-people suggestions --></div>
 </section>
 
 <!-- ── LAYER 3 (Aryan/Harsh only): Invite draft ── -->
@@ -80,6 +97,18 @@
     </div>
   </header>
   <div class="invite-body" id="invite-body"><!-- injected --></div>
+</section>
+
+<!-- ── LAYER 4: Nudges, notifications and settings ── -->
+<section id="layer-nudges" class="screen screen--invite" hidden>
+  <header class="list-header">
+    <button class="back-btn" id="back-from-nudges" type="button" aria-label="Back">&#8249;</button>
+    <div class="list-header__text">
+      <div class="list-header__title">Nudges</div>
+      <div class="list-header__sub">Who to invite next</div>
+    </div>
+  </header>
+  <div class="invite-body" id="nudges-body"><!-- injected --></div>
 </section>
 
 <!-- Supabase JS v2 -->

@@ -1,7 +1,7 @@
 // VCSS Social CRM  –  Service Worker
 // Caches the app shell for offline resilience. Bump CACHE_NAME on every deploy
 // that changes index.html, css/style.css, or js/app.js.
-const CACHE_NAME = "vcss-v2-4";
+const CACHE_NAME = "vcss-v2-5";
 
 const SHELL = [
   "./",
@@ -55,6 +55,49 @@ self.addEventListener("fetch", function (event) {
         return response;
       }).catch(function () { return cached; });
       return cached || network;
+    })
+  );
+});
+
+// ── Push notifications (nudges) ─────────────────────────────────────────
+// iOS requires every push to show a visible notification, so the handler
+// always calls showNotification, even if the payload is unreadable.
+self.addEventListener("push", function (event) {
+  var data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: "VCSS", body: event.data ? event.data.text() : "" };
+  }
+  var title = data.title || "VCSS";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-192.png",
+      tag: "vcss-nudge",
+      data: { url: data.url || "./" }
+    })
+  );
+});
+
+// Tapping a notification opens the app straight on the draft invite page.
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  var raw = (event.notification.data && event.notification.data.url) || "./";
+  var target = new URL(raw, self.registration.scope).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if (c.url.indexOf(self.registration.scope) === 0 && "focus" in c) {
+          return c.focus().then(function (client) {
+            client.postMessage({ type: "deeplink", url: target });
+            return client;
+          });
+        }
+      }
+      return self.clients.openWindow(target);
     })
   );
 });
