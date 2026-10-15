@@ -7,6 +7,16 @@
 
   var db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  // Text size is chosen per phone (Nudges > Text size). 1 = original size.
+  var TEXT_SCALES = { standard: 1, large: 1.3, xlarge: 1.5 };
+  function getTextSize() {
+    try { return window.localStorage.getItem("vcss_text_size") || "large"; } catch (e) { return "large"; }
+  }
+  function applyTextSize(key) {
+    document.documentElement.style.setProperty("--fs", String(TEXT_SCALES[key] || TEXT_SCALES.large));
+  }
+  applyTextSize(getTextSize());
+
   // Used to work out which city VC is in from his phone's location (radius in km).
   var CITY_FENCES = [
     { city: "Mumbai",   lat: 19.0760, lon:   72.8777, km: 100 },
@@ -326,7 +336,7 @@
 
     if (sortMode === "recent" && contacts.length &&
         !contacts.some(function (c) { return c.last_met_date; })) {
-      html += '<div class="spinner-wrap" style="padding:14px 0;font-size:13px;color:#aaa">' +
+      html += '<div class="spinner-wrap" style="padding:14px 0;font-size:calc(13px * var(--fs));color:#aaa">' +
               'No last-met dates recorded yet, so this follows surname order.</div>';
     }
 
@@ -404,7 +414,7 @@
           '<div class="card-id">' +
             '<div class="card-name">' + esc(c.full_name) + '</div>' +
             '<div class="card-role">' + roleLine(c) + '</div>' +
-            metTag + lastMet +
+            ((metTag || lastMet) ? '<div class="card-tags">' + metTag + lastMet + '</div>' : '') +
           '</div>' +
         '</div>' +
         context +
@@ -541,7 +551,7 @@
     var box = document.getElementById("invite-suggest");
     if (box) {
       if (!el("layer-invite").hidden && suggestions.length > 0) {
-        box.innerHTML = '<div class="invite-section-label">Also consider</div>' + suggestMarkup(3, "Connected to this list");
+        box.innerHTML = suggestMarkup(3, "Also consider · connected to this list");
       } else {
         box.innerHTML = "";
       }
@@ -612,7 +622,7 @@
 
     var peopleRows = selected.map(function (c, i) {
       return '<div class="invite-person" data-id="' + esc(c.id) + '">' +
-        '<span><span class="invite-num">' + (i + 1) + '</span><span>' + esc(c.full_name) + '</span></span>' +
+        '<span class="invite-person__who"><span class="invite-num">' + (i + 1) + '</span><span>' + esc(c.full_name) + '</span></span>' +
         '<button class="invite-remove" type="button" aria-label="Remove">&times;</button>' +
         '</div>';
     }).join("");
@@ -818,9 +828,21 @@
     return out;
   }
 
+  // Waits for the background worker, but gives up after 4 seconds instead of hanging.
+  function swReady() {
+    return Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          reject(new Error("The app is still starting up. Close and reopen VCSS, then try again."));
+        }, 4000);
+      })
+    ]);
+  }
+
   function getPushState() {
     if (!pushSupported()) return Promise.resolve({ supported: false });
-    return navigator.serviceWorker.ready
+    return swReady()
       .then(function (reg) { return reg.pushManager.getSubscription(); })
       .then(function (sub) { return { supported: true, permission: Notification.permission, sub: sub }; })
       .catch(function () { return { supported: false }; });
@@ -834,7 +856,7 @@
       if (perm !== "granted") {
         throw new Error("Permission was not granted. On iPhone: Settings > Notifications > VCSS.");
       }
-      return navigator.serviceWorker.ready;
+      return swReady();
     }).then(function (reg) {
       var opts = { userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidPublic) };
       return reg.pushManager.getSubscription().then(function (existing) {
@@ -975,6 +997,14 @@
         '<span>This is VC\'s phone. Keeps VC\'s city up to date from this phone\'s location (asks permission once). Leave off on any other phone.</span></label>' +
       '</div>' +
 
+      '<div class="nudge-card"><div class="invite-section-label" style="margin-top:0">Text size (this phone)</div>' +
+        '<div class="seg" id="text-size-seg">' +
+        ['standard', 'large', 'xlarge'].map(function (k) {
+          var label = { standard: 'Standard', large: 'Large', xlarge: 'Extra large' }[k];
+          return '<button type="button" data-size="' + k + '"' + (getTextSize() === k ? ' class="on"' : '') + '>' + label + '</button>';
+        }).join('') + '</div>' +
+      '</div>' +
+
       '<div class="nudge-card"><div class="invite-section-label" style="margin-top:0">Last nudges sent</div>' + logRows + '</div>' +
 
       '<p class="invite-note">At most one nudge every 3 days, sent around 6 am and 10 am in VC\'s city.</p>';
@@ -1014,6 +1044,16 @@
     if (offBtn) offBtn.addEventListener("click", function () {
       disablePush().then(function () { renderNudges(); })
         .catch(function (err) { setStatus(status, err.message || String(err), "bad"); });
+    });
+
+    el("text-size-seg").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-size]");
+      if (!b) return;
+      try { window.localStorage.setItem("vcss_text_size", b.dataset.size); } catch (x) {}
+      applyTextSize(b.dataset.size);
+      Array.prototype.forEach.call(el("text-size-seg").children, function (c) {
+        c.classList.toggle("on", c === b);
+      });
     });
 
     el("vc-phone-toggle").addEventListener("change", function (e) {
